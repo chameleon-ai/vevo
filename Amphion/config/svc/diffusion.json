@@ -1,0 +1,142 @@
+{
+    "base_config": "config/svc/base.json",
+    "model": {
+        "condition_encoder": {
+            "merge_mode": "add",
+            // Prosody Features
+            "use_f0": true,
+            "use_uv": true,
+            "use_energy": true,
+            // Quantization (0 for not quantization)
+            "input_melody_dim": 1,
+            "n_bins_melody": 256,
+            "output_melody_dim": 384,
+            "input_loudness_dim": 1,
+            "n_bins_loudness": 256,
+            "output_loudness_dim": 384,
+            // Semantic Features
+            "use_whisper": false,
+            "use_contentvec": false,
+            "use_wenet": false,
+            "use_mert": false,
+            "whisper_dim": 1024,
+            "contentvec_dim": 256,
+            "mert_dim": 256,
+            "wenet_dim": 512,
+            "content_encoder_dim": 384,
+            // Speaker Features
+            "output_singer_dim": 384,
+            "singer_table_size": 512,
+            "use_spkid": true
+        },
+        "diffusion": {
+            "scheduler": "ddpm",
+            "scheduler_settings": {
+                "num_train_timesteps": 1000,
+                "beta_start": 1.0e-4,
+                "beta_end": 0.02,
+                "beta_schedule": "linear"
+            },
+            // Diffusion steps encoder
+            "step_encoder": {
+                "dim_raw_embedding": 128,
+                "dim_hidden_layer": 512,
+                "activation": "SiLU",
+                "num_layer": 2,
+                "max_period": 10000
+            },
+            // Diffusion decoder
+            "model_type": "bidilconv",
+            // bidilconv, unet2d, TODO: unet1d
+            "bidilconv": {
+                "base_channel": 384,
+                "n_res_block": 20,
+                "conv_kernel_size": 3,
+                "dilation_cycle_length": 4,
+                // specially, 1 means no dilation
+                "conditioner_size": 384
+            },
+            "unet2d": {
+                "in_channels": 1,
+                "out_channels": 1,
+                "down_block_types": [
+                    "CrossAttnDownBlock2D",
+                    "CrossAttnDownBlock2D",
+                    "CrossAttnDownBlock2D",
+                    "DownBlock2D"
+                ],
+                "mid_block_type": "UNetMidBlock2DCrossAttn",
+                "up_block_types": [
+                    "UpBlock2D",
+                    "CrossAttnUpBlock2D",
+                    "CrossAttnUpBlock2D",
+                    "CrossAttnUpBlock2D"
+                ],
+                "only_cross_attention": false
+            }
+        }
+    },
+    "train": {
+        // Basic settings
+        "batch_size": 64,
+        "gradient_accumulation_step": 1,
+        "max_epoch": -1,
+        // -1 means no limit
+        "save_checkpoint_stride": [
+            5,
+            20
+        ],
+        // unit is epoch
+        "keep_last": [
+            3,
+            -1
+        ],
+        // -1 means infinite, if one number will broadcast
+        "run_eval": [
+            false,
+            true
+        ],
+        // if one number will broadcast
+        // Fix the random seed
+        "random_seed": 10086,
+        // Batchsampler
+        "sampler": {
+            "holistic_shuffle": true,
+            "drop_last": true
+        },
+        // Dataloader
+        "dataloader": {
+            "num_worker": 32,
+            "pin_memory": true
+        },
+        // Trackers
+        "tracker": [
+            "tensorboard"
+            // "wandb",
+            // "cometml",
+            // "mlflow",
+        ],
+        // Optimizer
+        "optimizer": "AdamW",
+        "adamw": {
+            "lr": 4.0e-4
+            // nn model lr
+        },
+        // LR Scheduler
+        "scheduler": "ReduceLROnPlateau",
+        "reducelronplateau": {
+            "factor": 0.8,
+            "patience": 10,
+            // unit is epoch
+            "min_lr": 1.0e-4
+        }
+    },
+    "inference": {
+        "diffusion": {
+            "scheduler": "pndm",
+            "scheduler_settings": {
+                "num_inference_timesteps": 1000
+            }
+        }
+    }
+}
