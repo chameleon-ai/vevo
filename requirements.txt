@@ -7,3 +7,4 @@ pyworld
 json5
 ruamel.yaml
 six
+huggingface_hub
