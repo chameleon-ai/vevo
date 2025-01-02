@@ -1,0 +1,9 @@
+librosa
+accelerate
+ipython
+transformers
+einops
+pyworld
+json5
+ruamel.yaml
+six
