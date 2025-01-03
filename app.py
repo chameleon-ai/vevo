@@ -1,38 +1,69 @@
 import errno
+import mimetypes
 import os
 import sys
-import torch
 import traceback
+from pydub import AudioSegment
+import torch
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import messagebox
 sys.path.append('./Amphion') # For importing modules relative to the Amphion directory
 import Amphion.models.vc.vevo.vevo_utils as vevo_utils
 from huggingface_hub import snapshot_download
 
+def get_unique_filename(basename : str, extension : str):
+    filename = '{}.{}'.format(basename,extension)
+    x = 0
+    while os.path.isfile(filename):
+        x += 1
+        filename = '{}-{}.{}'.format(basename,x,extension)
+    return filename
+
+# Converts an audio file to wav if needed
+def get_wav(filename, out_dir):
+    # Possible mime types: https://www.iana.org/assignments/media-types/media-types.xhtml
+    mime, encoding = mimetypes.guess_type(filename)
+    if mime == 'audio/wav' or mime == 'audio/x-wav':
+        return filename
+    elif mime == 'audio/mpeg':
+        seg = AudioSegment.from_mp3(filename)
+        # Create a new file in the output directory named after the input
+        wav_filename = get_unique_filename(os.path.join(out_dir, os.path.splitext(os.path.basename(filename))[0]), 'wav')
+        print(wav_filename)
+        seg.export(wav_filename, format="wav")
+        return wav_filename
+    else:
+        raise RuntimeError("Unsupported file type {} for file '{}'".format(mime, filename))
+
 def infer():
     try:
         content_filename = content_path.get()
-        reference_filename = reference_path.get()
+        reference_style_filename = reference_style_path.get()
+        reference_timbre_filename = reference_timbre_path.get()
         output_dir = output_path.get()
         if not os.path.isdir(output_dir):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), output_dir)
         if not os.path.isfile(content_filename):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), content_filename)
-        if not os.path.isfile(reference_filename):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), reference_filename)
+        if not os.path.isfile(reference_style_filename):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), reference_style_filename)
+        if not os.path.isfile(reference_timbre_filename):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), reference_timbre_filename)
         
-        output_filename = os.path.join(output_dir, 'output.wav')
+        output_filename = get_unique_filename(os.path.join(output_dir, 'output'), 'wav')
         
         gen_audio = inference_pipeline.inference_ar_and_fm(
             src_wav_path=content_filename,
             src_text=None,
-            style_ref_wav_path=reference_filename,
-            timbre_ref_wav_path=reference_filename,
+            style_ref_wav_path=reference_style_filename,
+            timbre_ref_wav_path=reference_timbre_filename,
+            flow_matching_steps=steps_value.get()
         )
-        vevo_utils.save_audio(gen_audio, output_path=output_filename)
+        vevo_utils.save_audio(gen_audio, target_sample_rate=48000, output_path=output_filename)
         message = "Done. Output file: '{}'".format(output_filename)
         print(message)
-        error_str.set("")
+        error_str.set(message)
     except Exception as e:
         error_str.set(str(e))
         traceback.print_exc()
@@ -104,31 +135,54 @@ def load_model():
     )
     return pipeline
 
-def browse_reference():
-    filename = filedialog.askopenfilename(filetypes=(("wav files","*.wav"),("All files","*.*")))
-    reference_entry.insert(tk.END, filename)
+def browse_reference_style():
+    try:
+        filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
+        if os.path.exists(filename):
+            reference_style_path.set(get_wav(filename, output_path.get()))
+    except Exception as e:
+        messagebox.showerror('Error', 'Tried to generate .wav file in output directory, but failed: {}'.format(e))
+
+def browse_reference_timbre():
+    try:
+        filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
+        if os.path.exists(filename):
+            reference_timbre_path.set(get_wav(filename, output_path.get()))
+    except Exception as e:
+        messagebox.showerror('Error', 'Tried to generate .wav file in output directory, but failed: {}'.format(e))
 
 def browse_content():
-    filename = filedialog.askopenfilename(filetypes=(("wav files","*.wav"),("All files","*.*")))
-    content_entry.insert(tk.END, filename)
+    try:
+        filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
+        if os.path.exists(filename):
+            content_path.set(get_wav(filename, output_path.get()))
+    except Exception as e:
+        messagebox.showerror('Error', 'Tried to generate .wav file in output directory, but failed: {}'.format(e))
 
 def browse_output():
-    filename = filedialog.askdirectory()
-    output_entry.insert(tk.END, filename)
+    dirname = filedialog.askdirectory()
+    if not os.path.isdir(dirname):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), dirname)
+    output_path.set(dirname)
 
 if __name__ == '__main__':
     inference_pipeline = load_model()
     root = tk.Tk()
     root.title('Vevo GUI')
-    root.geometry("800x600")
+    root.geometry("800x250")
 
     tk.Grid.columnconfigure(root, 1, weight=1) # Weight this column to have it stretch with the window
 
-    reference_label = tk.Label(root, text='Reference voice:')
-    reference_path = tk.StringVar()
-    reference_path.set('./Amphion/models/vc/vevo/wav/arabic_male.wav')
-    reference_entry = tk.Entry(root, textvariable=reference_path)
-    reference_browse = tk.Button(root, text='Browse', command=browse_reference)
+    reference_style_label = tk.Label(root, text='Reference style:')
+    reference_style_path = tk.StringVar()
+    reference_style_path.set('./Amphion/models/vc/vevo/wav/arabic_male.wav')
+    reference_style_entry = tk.Entry(root, textvariable=reference_style_path)
+    reference_style_browse = tk.Button(root, text='Browse', command=browse_reference_style)
+    reference_timbre_label = tk.Label(root, text='Reference timbre:')
+    reference_timbre_path = tk.StringVar()
+    reference_timbre_path.set('./Amphion/models/vc/vevo/wav/arabic_male.wav')
+    reference_timbre_entry = tk.Entry(root, textvariable=reference_timbre_path)
+    reference_timbre_browse = tk.Button(root, text='Browse', command=browse_reference_timbre)
     content_label = tk.Label(root, text='Content audio:')
     content_path = tk.StringVar()
     content_path.set('./Amphion/models/vc/vevo/wav/source.wav')
@@ -140,22 +194,30 @@ if __name__ == '__main__':
     output_entry = tk.Entry(root, textvariable=output_path)
     output_browse = tk.Button(root, text='Browse', command=browse_output)
 
+    steps_value = tk.IntVar()
+    steps_value.set(32)
+    steps_label = tk.Label(root, text='Flow Matching Steps:')
+    steps_scale = tk.Scale(root, variable= steps_value, from_=1, to=64, orient=tk.HORIZONTAL)
     infer_button = tk.Button(root, text='Run Inference', command=infer)
 
     error_str = tk.StringVar()
     error_label = tk.Label(root, textvariable=error_str)
-
     
-    reference_label.grid(row=0,column=0)
-    reference_entry.grid(row=0,column=1, sticky=tk.EW)
-    reference_browse.grid(row=0,column=2)
-    content_label.grid(row=1,column=0)
-    content_entry.grid(row=1,column=1, sticky=tk.EW)
-    content_browse.grid(row=1,column=2)
-    output_label.grid(row=2,column=0)
-    output_entry.grid(row=2,column=1, sticky=tk.EW)
-    output_browse.grid(row=2,column=2)
-    infer_button.grid(row=3,column=1)
-    error_label.grid(row=4,column=1)
+    reference_style_label.grid(row=0,column=0)
+    reference_style_entry.grid(row=0,column=1, sticky=tk.EW)
+    reference_style_browse.grid(row=0,column=2)
+    reference_timbre_label.grid(row=1,column=0)
+    reference_timbre_entry.grid(row=1,column=1, sticky=tk.EW)
+    reference_timbre_browse.grid(row=1,column=2)
+    content_label.grid(row=2,column=0)
+    content_entry.grid(row=2,column=1, sticky=tk.EW)
+    content_browse.grid(row=2,column=2)
+    output_label.grid(row=3,column=0)
+    output_entry.grid(row=3,column=1, sticky=tk.EW)
+    output_browse.grid(row=3,column=2)
+    steps_label.grid(row=4,column=0, sticky=tk.NSEW)
+    steps_scale.grid(row=4,column=1, sticky=tk.EW)
+    infer_button.grid(row=5,column=1)
+    error_label.grid(row=6,column=1)
     root.mainloop()
 
