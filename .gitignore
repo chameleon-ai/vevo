@@ -1,4 +1,5 @@
 venv/
 ckpts/
+output/
 *.wav
 *.png

@@ -294,9 +294,12 @@ if __name__ == '__main__':
     reference_language_combo.current(0)
 
     # Output directory
+    outdir = './output'
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
     output_label = tk.Label(root, text='Output Directory:')
     output_path = tk.StringVar()
-    output_path.set('./')
+    output_path.set(outdir)
     output_entry = tk.Entry(root, textvariable=output_path)
     output_browse = tk.Button(root, text='Browse', command=browse_output)
 
@@ -322,7 +325,7 @@ if __name__ == '__main__':
         rb.grid(row=0,column=col,sticky=tk.EW)
         mode_frame.columnconfigure(col,weight=1)
         col += 1
-    mode_var.set('voice')
+    mode_var.set('timbre')
 
     infer_button = tk.Button(root, text='Run Inference', command=infer)
 
