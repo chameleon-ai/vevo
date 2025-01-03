@@ -15,3 +15,4 @@ Simple GUI for Amphion Vevo: https://github.com/open-mmlab/Amphion
 - Run the app (current working directory needs to be the top level of the repo):
   - `python app.py`
 - This is confirmed working for Linux+AMD (ROCM 6.2). If you run into issues, please try to get the command-line example from the Amphion repo working first. This GUI is a simple wrapper for the Amphion tools and there is no platform specific code in the GUI.
+  - https://github.com/open-mmlab/Amphion/blob/main/models/vc/vevo/README.md
