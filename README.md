@@ -1,7 +1,7 @@
 # Vevo GUI
 Simple GUI for Amphion Vevo: https://github.com/open-mmlab/Amphion
 
-![screenshot](https://github.com/user-attachments/assets/ea2ce979-f726-4225-a103-7ee4fb3a24b5)
+![screen2](https://github.com/user-attachments/assets/c5a3ee3d-dc79-4bbd-bf1f-cfc72ec21fba)
 
 ## Installation
 - Clone this repository and `cd` to the top level.
