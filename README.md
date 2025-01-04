@@ -17,6 +17,10 @@ Simple GUI for Amphion Vevo: https://github.com/open-mmlab/Amphion
 - This is confirmed working for Linux+AMD (ROCM 6.2). If you run into issues, please try to get the command-line example from the Amphion repo working first. This GUI is a simple wrapper for the Amphion tools and there is no platform specific code in the GUI.
   - https://github.com/open-mmlab/Amphion/blob/main/models/vc/vevo/README.md
 
+### Pinokio Install
+In Pinokio, select "Download from URL" and use this:\
+https://github.com/chameleon-ai/vevo-pinokio
+
 ## Inference Modes
 ### Voice
 A combo of vevostyle and vevovoice. Capable of imitating a voice and style (accent, emotion) independently.\
