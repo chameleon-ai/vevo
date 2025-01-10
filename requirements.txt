@@ -1,4 +1,5 @@
-numpy==2.0.0
+numpy==1.26.4
+py3langid==0.2.2
 librosa
 accelerate
 ipython
