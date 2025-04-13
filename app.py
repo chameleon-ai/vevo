@@ -10,7 +10,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
 sys.path.append('./Amphion') # For importing modules relative to the Amphion directory
-import Amphion.models.vc.vevo.vevo_utils as vevo_utils
+import Amphion.models.svc.vevosing.vevosing_utils as vevosing_utils
 from huggingface_hub import snapshot_download
 
 def get_unique_filename(basename : str, extension : str):
@@ -38,7 +38,7 @@ def get_wav(filename, out_dir):
         raise RuntimeError("Unsupported file type {} for file '{}'".format(mime, filename))
 
 # Do vevo inference based on the provided mode string
-def run_inference(pipeline : vevo_utils.VevoInferencePipeline,
+def run_inference(pipeline : vevosing_utils.VevosingInferencePipeline,
                   mode : str,
                   content : str,
                   ref_style : str,
@@ -50,10 +50,15 @@ def run_inference(pipeline : vevo_utils.VevoInferencePipeline,
                   steps : int):
     if mode == 'voice':
         return pipeline.inference_ar_and_fm(
+            task="recognition-synthesis",
             src_wav_path=content,
-            src_text=None,
+            src_text=None, # whisper on this?
             style_ref_wav_path=ref_style,
-            timbre_ref_wav_path=ref_timbre,
+            style_ref_wav_text=None, # whisper on this?
+            src_text_language=src_language,
+            style_ref_wav_text_language=ref_language,
+            timbre_ref_wav_path=ref_timbre,  # keep the timbre as the raw wav
+            use_style_tokens_as_ar_input=True,  # To use the prosody code of the raw wav
             flow_matching_steps=steps
         )
     elif mode == 'timbre':
@@ -66,13 +71,15 @@ def run_inference(pipeline : vevo_utils.VevoInferencePipeline,
         print(src_language)
         print(ref_language)
         return pipeline.inference_ar_and_fm(
+            task="synthesis",
             src_wav_path=None,
             src_text=src_text,
             style_ref_wav_path=ref_style,
             timbre_ref_wav_path=ref_timbre,
             style_ref_wav_text=ref_text if ref_text != '' else None,
             src_text_language=src_language,
-            style_ref_wav_text_language=ref_language
+            style_ref_wav_text_language=ref_language,
+            flow_matching_steps=steps
         )
     else:
         raise RuntimeError("Unrecognized inference mode '{}'".format(mode))
@@ -104,7 +111,7 @@ def infer():
             src_language = source_language.get(),
             ref_language = reference_language.get(),
             steps = steps_value.get())
-        vevo_utils.save_audio(gen_audio, target_sample_rate=48000, output_path=output_filename)
+        vevosing_utils.save_audio(gen_audio, target_sample_rate=48000, output_path=output_filename)
         message = "Done. Output file: '{}'".format(output_filename)
         print(message)
         error_str.set(message)
@@ -117,57 +124,59 @@ def load_model():
     
     # Content Tokenizer
     local_dir = snapshot_download(
-        repo_id="amphion/Vevo",
+        repo_id="amphion/Vevo1.5",
         repo_type="model",
-        cache_dir="./ckpts/Vevo",
-        allow_patterns=["tokenizer/vq32/*"],
+        cache_dir="./ckpts/Vevo1.5",
+        allow_patterns=["tokenizer/prosody_fvq512_6.25hz/*"],
     )
-    content_tokenizer_ckpt_path = os.path.join(
-        local_dir, "tokenizer/vq32/hubert_large_l18_c32.pkl"
+    prosody_tokenizer_ckpt_path = os.path.join(
+        local_dir, "tokenizer/prosody_fvq512_6.25hz"
     )
 
     # Content-Style Tokenizer
     local_dir = snapshot_download(
-        repo_id="amphion/Vevo",
+        repo_id="amphion/Vevo1.5",
         repo_type="model",
-        cache_dir="./ckpts/Vevo",
-        allow_patterns=["tokenizer/vq8192/*"],
+        cache_dir="./ckpts/Vevo1.5",
+        allow_patterns=["tokenizer/contentstyle_fvq16384_12.5hz/*"],
     )
-    content_style_tokenizer_ckpt_path = os.path.join(local_dir, "tokenizer/vq8192")
+    content_style_tokenizer_ckpt_path = os.path.join( local_dir, "tokenizer/contentstyle_fvq16384_12.5hz")
 
     # Autoregressive Transformer
+    ar_model_name = "ar_emilia101k_singnet7k"
     local_dir = snapshot_download(
-        repo_id="amphion/Vevo",
+        repo_id="amphion/Vevo1.5",
         repo_type="model",
-        cache_dir="./ckpts/Vevo",
-        allow_patterns=["contentstyle_modeling/Vq32ToVq8192/*"],
+        cache_dir="./ckpts/Vevo1.5",
+        allow_patterns=[f"contentstyle_modeling/{ar_model_name}/*"],
     )
-    ar_cfg_path = "./config/Vq32ToVq8192.json"
-    ar_ckpt_path = os.path.join(local_dir, "contentstyle_modeling/Vq32ToVq8192")
+    ar_cfg_path = f"./config/{ar_model_name}.json"
+    ar_ckpt_path = os.path.join(local_dir, "contentstyle_modeling/ar_emilia101k_singnet7k")
 
     # Flow Matching Transformer
+    fm_model_name = "fm_emilia101k_singnet7k"
     local_dir = snapshot_download(
-        repo_id="amphion/Vevo",
+        repo_id="amphion/Vevo1.5",
         repo_type="model",
-        cache_dir="./ckpts/Vevo",
-        allow_patterns=["acoustic_modeling/Vq8192ToMels/*"],
+        cache_dir="./ckpts/Vevo1.5",
+        allow_patterns=[f"acoustic_modeling/{fm_model_name}/*"],
     )
-    fmt_cfg_path = "./config/Vq8192ToMels.json"
-    fmt_ckpt_path = os.path.join(local_dir, "acoustic_modeling/Vq8192ToMels")
+    fmt_cfg_path = f"./config/{fm_model_name}.json"
+    fmt_ckpt_path = os.path.join(local_dir, "acoustic_modeling/fm_emilia101k_singnet7k")
 
     # Vocoder
     local_dir = snapshot_download(
-        repo_id="amphion/Vevo",
+        repo_id="amphion/Vevo1.5",
         repo_type="model",
-        cache_dir="./ckpts/Vevo",
+        cache_dir="./ckpts/Vevo1.5",
         allow_patterns=["acoustic_modeling/Vocoder/*"],
     )
-    vocoder_cfg_path = "./Amphion/models/vc/vevo/config/Vocoder.json"
+    vocoder_cfg_path = "./Amphion/models/svc/vevosing/config/vocoder.json"
     vocoder_ckpt_path = os.path.join(local_dir, "acoustic_modeling/Vocoder")
 
     # Inference
-    pipeline = vevo_utils.VevoInferencePipeline(
-        content_tokenizer_ckpt_path=content_tokenizer_ckpt_path,
+    pipeline = vevosing_utils.VevosingInferencePipeline(
+        prosody_tokenizer_ckpt_path=prosody_tokenizer_ckpt_path,
         content_style_tokenizer_ckpt_path=content_style_tokenizer_ckpt_path,
         ar_cfg_path=ar_cfg_path,
         ar_ckpt_path=ar_ckpt_path,

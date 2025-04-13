@@ -21,6 +21,9 @@ unidecode
 inflect
 phonemizer
 LangSegment
+praat-parselmouth
+openai-whisper
+torchcrepe
 standard-aifc; python_version>='3.13'
 standard-sunau; python_version>='3.13'
 audioop-lts; python_version>='3.13'
