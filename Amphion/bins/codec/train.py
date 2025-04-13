@@ -8,6 +8,10 @@ import argparse
 import torch
 
 from models.codec.facodec.facodec_trainer import FAcodecTrainer
+from models.codec.vevo.vqvae_trainer import (
+    VQVAETrainer,
+)
+from models.codec.coco.rep_coco_trainer import RepCocoTrainer
 
 from utils.util import load_config
 
@@ -15,6 +19,8 @@ from utils.util import load_config
 def build_trainer(args, cfg):
     supported_trainer = {
         "FAcodec": FAcodecTrainer,
+        "RepCoco": RepCocoTrainer,
+        "VQVAE": VQVAETrainer,
     }
 
     trainer_class = supported_trainer[cfg.model_type]
@@ -49,6 +55,9 @@ def main():
         default="exp_name",
         help="A specific name to note the experiment",
         required=True,
+    )
+    parser.add_argument(
+        "--resume", action="store_true", help="The model name to restore"
     )
     parser.add_argument(
         "--resume_type",
