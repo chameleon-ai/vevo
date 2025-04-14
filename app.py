@@ -48,20 +48,33 @@ def run_inference(pipeline : vevosing_utils.VevosingInferencePipeline,
                   src_language : str,
                   ref_language : str,
                   steps : int):
-    if mode == 'voice':
+    if mode == 'melody':
         return pipeline.inference_ar_and_fm(
             task="recognition-synthesis",
             src_wav_path=content,
-            src_text=None, # whisper on this?
+            src_text=src_text,
             style_ref_wav_path=ref_style,
-            style_ref_wav_text=None, # whisper on this?
+            style_ref_wav_text=ref_text,
             src_text_language=src_language,
             style_ref_wav_text_language=ref_language,
-            timbre_ref_wav_path=ref_timbre,  # keep the timbre as the raw wav
+            timbre_ref_wav_path=ref_timbre,
+            use_style_tokens_as_ar_input=True,  # To use the prosody code
+            flow_matching_steps=steps
+        )
+    elif mode == 'style':
+        return pipeline.inference_ar_and_fm(
+            task="recognition-synthesis",
+            src_wav_path=content,
+            src_text=src_text,
+            style_ref_wav_path=ref_style,
+            style_ref_wav_text=ref_text,
+            src_text_language=src_language,
+            style_ref_wav_text_language=ref_language,
+            timbre_ref_wav_path=ref_timbre,
             use_style_tokens_as_ar_input=True,  # To use the prosody code of the raw wav
             flow_matching_steps=steps
         )
-    elif mode == 'timbre':
+    elif mode == 'fm':
         return pipeline.inference_fm(
             src_wav_path=content,
             timbre_ref_wav_path=ref_timbre,
@@ -221,18 +234,29 @@ def browse_output():
 def set_mode():
     # Set certain controls to enabled or disabled depending on the inference mode
     mode = mode_var.get()
-    if mode == 'voice':
+    if mode == 'style':
         reference_style_entry['state'] = tk.NORMAL
         reference_style_browse['state'] = tk.NORMAL
         reference_timbre_entry['state'] = tk.NORMAL
         reference_timbre_browse['state'] = tk.NORMAL
         content_entry['state'] = tk.NORMAL
         content_browse['state'] = tk.NORMAL
-        source_text_entry['state'] = tk.DISABLED
-        source_language_combo['state'] = tk.DISABLED
-        reference_text_entry['state'] = tk.DISABLED
-        reference_language_combo['state'] = tk.DISABLED
-    elif mode == 'timbre':
+        source_text_entry['state'] = tk.NORMAL
+        source_language_combo['state'] = tk.NORMAL
+        reference_text_entry['state'] = tk.NORMAL
+        reference_language_combo['state'] = tk.NORMAL
+    elif mode == 'melody':
+        reference_style_entry['state'] = tk.NORMAL
+        reference_style_browse['state'] = tk.NORMAL
+        reference_timbre_entry['state'] = tk.NORMAL
+        reference_timbre_browse['state'] = tk.NORMAL
+        content_entry['state'] = tk.NORMAL
+        content_browse['state'] = tk.NORMAL
+        source_text_entry['state'] = tk.NORMAL
+        source_language_combo['state'] = tk.NORMAL
+        reference_text_entry['state'] = tk.NORMAL
+        reference_language_combo['state'] = tk.NORMAL
+    elif mode == 'fm':
         reference_style_entry['state'] = tk.DISABLED
         reference_style_browse['state'] = tk.DISABLED
         reference_timbre_entry['state'] = tk.NORMAL
@@ -323,8 +347,9 @@ if __name__ == '__main__':
     mode_frame = tk.Frame(root)
     
     mode_button_dict = {
-        'Voice' : 'voice',
-        'Timbre': 'timbre',
+        'Melody' : 'melody',
+        'Style'  : 'style',
+        'Timbre ': 'fm',
         'TTS'   : 'tts'
     }
     mode_var = tk.StringVar()
@@ -334,7 +359,7 @@ if __name__ == '__main__':
         rb.grid(row=0,column=col,sticky=tk.EW)
         mode_frame.columnconfigure(col,weight=1)
         col += 1
-    mode_var.set('timbre')
+    mode_var.set('fm')
 
     infer_button = tk.Button(root, text='Run Inference', command=infer)
 
