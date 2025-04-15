@@ -22,7 +22,7 @@ inflect
 phonemizer
 LangSegment
 praat-parselmouth
-openai-whisper
+git+https://github.com/openai/whisper.git
 torchcrepe
 standard-aifc; python_version>='3.13'
 standard-sunau; python_version>='3.13'
