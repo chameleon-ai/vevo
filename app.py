@@ -48,20 +48,7 @@ def run_inference(pipeline : vevosing_utils.VevosingInferencePipeline,
                   src_language : str,
                   ref_language : str,
                   steps : int):
-    if mode == 'melody':
-        return pipeline.inference_ar_and_fm(
-            task="recognition-synthesis",
-            src_wav_path=content,
-            src_text=src_text,
-            style_ref_wav_path=ref_style,
-            style_ref_wav_text=ref_text,
-            src_text_language=src_language,
-            style_ref_wav_text_language=ref_language,
-            timbre_ref_wav_path=ref_timbre,
-            use_style_tokens_as_ar_input=True,  # To use the prosody code
-            flow_matching_steps=steps
-        )
-    elif mode == 'style':
+    if mode == 'style':
         return pipeline.inference_ar_and_fm(
             task="recognition-synthesis",
             src_wav_path=content,
@@ -201,11 +188,27 @@ def load_model():
     )
     return pipeline
 
+def transcribe(filename):
+    print('Transcribing...')
+    import whisper
+    whisper_model = whisper.load_model("large-v3-turbo", device="cuda", download_root="./ckpts/")
+    result = whisper_model.transcribe(filename)
+    #print(result)
+    return result["text"], result["language"]
+
 def browse_reference_style():
     try:
         filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
         if os.path.exists(filename):
             reference_style_path.set(get_wav(filename, output_path.get()))
+            if reference_transcribe_checked.get() == 1:
+                text, language = transcribe(filename)
+                reference_text.set(text)
+                if language == 'en':
+                    reference_language_combo.current(0)
+                elif language == 'zh':
+                    reference_language_combo.current(1)
+
     except Exception as e:
         messagebox.showerror('Error', 'Tried to generate .wav file in output directory, but failed: {}'.format(e))
 
@@ -222,6 +225,14 @@ def browse_content():
         filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
         if os.path.exists(filename):
             content_path.set(get_wav(filename, output_path.get()))
+            if source_transcribe_checked.get() == 1 and mode_var.get() != 'fm':
+                text, language = transcribe(filename)
+                source_text.set(text)
+                if language == 'en':
+                    source_language_combo.current(0)
+                elif language == 'zh':
+                    source_language_combo.current(1)
+
     except Exception as e:
         messagebox.showerror('Error', 'Tried to generate .wav file in output directory, but failed: {}'.format(e))
 
@@ -245,17 +256,8 @@ def set_mode():
         source_language_combo['state'] = tk.NORMAL
         reference_text_entry['state'] = tk.NORMAL
         reference_language_combo['state'] = tk.NORMAL
-    elif mode == 'melody':
-        reference_style_entry['state'] = tk.NORMAL
-        reference_style_browse['state'] = tk.NORMAL
-        reference_timbre_entry['state'] = tk.NORMAL
-        reference_timbre_browse['state'] = tk.NORMAL
-        content_entry['state'] = tk.NORMAL
-        content_browse['state'] = tk.NORMAL
-        source_text_entry['state'] = tk.NORMAL
-        source_language_combo['state'] = tk.NORMAL
-        reference_text_entry['state'] = tk.NORMAL
-        reference_language_combo['state'] = tk.NORMAL
+        source_transcribe_checkbutton['state'] = tk.NORMAL
+        reference_transcribe_checkbutton['state'] = tk.NORMAL
     elif mode == 'fm':
         reference_style_entry['state'] = tk.DISABLED
         reference_style_browse['state'] = tk.DISABLED
@@ -267,6 +269,8 @@ def set_mode():
         source_language_combo['state'] = tk.DISABLED
         reference_text_entry['state'] = tk.DISABLED
         reference_language_combo['state'] = tk.DISABLED
+        source_transcribe_checkbutton['state'] = tk.DISABLED
+        reference_transcribe_checkbutton['state'] = tk.DISABLED
     elif mode == 'tts':
         reference_style_entry['state'] = tk.NORMAL
         reference_style_browse['state'] = tk.NORMAL
@@ -278,6 +282,8 @@ def set_mode():
         source_language_combo['state'] = tk.NORMAL
         reference_text_entry['state'] = tk.NORMAL
         reference_language_combo['state'] = tk.NORMAL
+        source_transcribe_checkbutton['state'] = tk.DISABLED
+        reference_transcribe_checkbutton['state'] = tk.NORMAL
         
     else:
         pass
@@ -286,24 +292,24 @@ if __name__ == '__main__':
     inference_pipeline = load_model()
     root = tk.Tk()
     root.title('Vevo GUI')
-    root.geometry("900x300")
+    root.geometry("1200x300")
 
     tk.Grid.columnconfigure(root, 1, weight=1) # Weight this column to have it stretch with the window
 
     # Voice mode options
     reference_style_label = tk.Label(root, text='Reference style:')
     reference_style_path = tk.StringVar()
-    reference_style_path.set('./Amphion/models/vc/vevo/wav/arabic_male.wav')
+    reference_style_path.set('./samples/ian-mckellan.wav')
     reference_style_entry = tk.Entry(root, textvariable=reference_style_path)
     reference_style_browse = tk.Button(root, text='Browse', command=browse_reference_style)
     reference_timbre_label = tk.Label(root, text='Reference timbre:')
     reference_timbre_path = tk.StringVar()
-    reference_timbre_path.set('./Amphion/models/vc/vevo/wav/arabic_male.wav')
+    reference_timbre_path.set('./samples/ian-mckellan.wav')
     reference_timbre_entry = tk.Entry(root, textvariable=reference_timbre_path)
     reference_timbre_browse = tk.Button(root, text='Browse', command=browse_reference_timbre)
-    content_label = tk.Label(root, text='Source audio:')
+    content_label = tk.Label(root, text='Source audio/melody:')
     content_path = tk.StringVar()
-    content_path.set('./Amphion/models/vc/vevo/wav/source.wav')
+    content_path.set('./samples/barry-white.wav')
     content_entry = tk.Entry(root, textvariable=content_path)
     content_browse = tk.Button(root, text='Browse', command=browse_content)
 
@@ -311,11 +317,17 @@ if __name__ == '__main__':
     source_text = tk.StringVar()
     source_text_label = tk.Label(root, text='Source text:')
     source_text_entry = tk.Entry(root, textvariable=source_text)
-    source_text.set('Your text here')
+    source_text.set("I just want some. Someone to talk to. I want you just the way you are.")
+    source_transcribe_checked = tk.IntVar()
+    source_transcribe_checkbutton = tk.Checkbutton(root, text='Auto Transcribe',variable=source_transcribe_checked, onvalue=1, offvalue=0)
+    #source_transcribe_checkbutton.select()
     reference_text = tk.StringVar()
     reference_text_label = tk.Label(root, text='Reference style text:')
     reference_text_entry = tk.Entry(root, textvariable=reference_text)
-    reference_text.set("Philip stood undecided. His ears strained to catch the slightest sound.")
+    reference_text.set("It is an ancient mariner, and he stoppeth one of three. By thy long grey beard and thy glittering eye, now wherefore stoppest me. The bridegroom's doors are opened wide and I am next of kin.")
+    reference_transcribe_checked = tk.IntVar()
+    reference_transcribe_checkbutton = tk.Checkbutton(root, text='Auto Transcribe',variable=reference_transcribe_checked, onvalue=1, offvalue=0)
+    #reference_transcribe_checkbutton.select()
     language_options = ('en', 'zh')
     source_language = tk.StringVar()
     source_language_combo = ttk.Combobox(root, textvariable=source_language, width=8)
@@ -347,10 +359,9 @@ if __name__ == '__main__':
     mode_frame = tk.Frame(root)
     
     mode_button_dict = {
-        'Melody' : 'melody',
-        'Style'  : 'style',
-        'Timbre ': 'fm',
-        'TTS'   : 'tts'
+        'Style (ar and fm recognition-synthesis)'  : 'style',
+        'Timbre (fm)': 'fm',
+        'TTS (ar and fm synthesis)'   : 'tts'
     }
     mode_var = tk.StringVar()
     col = 0
@@ -371,9 +382,10 @@ if __name__ == '__main__':
     reference_style_label.grid(row=0,column=0)
     reference_style_entry.grid(row=0,column=1,sticky=tk.EW)
     reference_style_browse.grid(row=0,column=2)
+    reference_transcribe_checkbutton.grid(row=0,column=3)
     reference_text_label.grid(row=1,column=0)
-    reference_text_entry.grid(row=1,column=1, sticky=tk.EW)
-    reference_language_combo.grid(row=1,column=2)
+    reference_text_entry.grid(row=1,column=1, columnspan=2, sticky=tk.EW)
+    reference_language_combo.grid(row=1,column=3)
     
     reference_timbre_label.grid(row=2,column=0)
     reference_timbre_entry.grid(row=2,column=1,sticky=tk.EW)
@@ -382,10 +394,11 @@ if __name__ == '__main__':
     content_label.grid(row=3,column=0)
     content_entry.grid(row=3,column=1,sticky=tk.EW)
     content_browse.grid(row=3,column=2)
+    source_transcribe_checkbutton.grid(row=3, column=3)
     
     source_text_label.grid(row=4,column=0)
-    source_text_entry.grid(row=4,column=1, sticky=tk.EW)
-    source_language_combo.grid(row=4,column=2)
+    source_text_entry.grid(row=4,column=1, columnspan=2, sticky=tk.EW)
+    source_language_combo.grid(row=4,column=3)
 
     output_label.grid(row=5,column=0)
     output_entry.grid(row=5,column=1,sticky=tk.EW)
