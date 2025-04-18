@@ -20,7 +20,7 @@ onnxruntime
 unidecode
 inflect
 phonemizer
-https://github.com/chameleon-ai/LangSegment-0.3.5-backup.git
+git+https://github.com/chameleon-ai/LangSegment-0.3.5-backup.git
 praat-parselmouth
 git+https://github.com/openai/whisper.git
 torchcrepe
