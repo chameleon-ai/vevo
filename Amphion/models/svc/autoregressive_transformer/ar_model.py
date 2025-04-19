@@ -4,7 +4,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from multiprocessing.sharedctypes import Value
-from re import T
 
 import torchaudio
 from transformers import LlamaConfig, LlamaForCausalLM, LlamaModel
