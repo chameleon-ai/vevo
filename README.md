@@ -1,7 +1,7 @@
 # Vevo GUI
 Simple GUI for Amphion Vevo: https://github.com/open-mmlab/Amphion
 
-Updated to support [Vevo 1.5](https://huggingface.co/amphion/Vevo1.5) a.k.a. [vevosing](https://github.com/open-mmlab/Amphion/blob/main/models/svc/vevosing/README.md)\
+Updated to support [Vevo 1.5](https://huggingface.co/amphion/Vevo1.5) a.k.a. [vevosing](https://github.com/open-mmlab/Amphion/blob/main/models/svc/vevosing/README.md)
 
 ## Installation
 - Clone this repository and `cd` to the top level.
