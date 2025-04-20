@@ -2,10 +2,6 @@
 Simple GUI for Amphion Vevo: https://github.com/open-mmlab/Amphion
 
 Updated to support [Vevo 1.5](https://huggingface.co/amphion/Vevo1.5) a.k.a. [vevosing](https://github.com/open-mmlab/Amphion/blob/main/models/svc/vevosing/README.md)\
-If you're looking for Vevo 1, see the [v1.0 tag](https://github.com/chameleon-ai/vevo/tree/v1.0).
-
-![Image](https://github.com/user-attachments/assets/c295f99a-49fa-4b12-a037-ad625672748a)
-
 
 ## Installation
 - Clone this repository and `cd` to the top level.
@@ -24,6 +20,29 @@ If you're looking for Vevo 1, see the [v1.0 tag](https://github.com/chameleon-ai
 ### Pinokio Install
 In Pinokio, select "Download from URL" and use this:\
 https://github.com/chameleon-ai/vevo-pinokio
+
+# Vevo 1
+Run `vevo_gui.py` or `app.py -v 1`
+
+![screen2](https://github.com/user-attachments/assets/c5a3ee3d-dc79-4bbd-bf1f-cfc72ec21fba)
+
+## Inference Modes
+### Voice
+A combo of vevostyle and vevovoice. Capable of imitating a voice and style (accent, emotion) independently.\
+The only difference is that vevostyle uses the same audo for source and timbre, and vevovoice uses the same audio for style and timbre.
+- https://github.com/open-mmlab/Amphion/blob/main/models/vc/vevo/infer_vevostyle.py
+- https://github.com/open-mmlab/Amphion/blob/main/models/vc/vevo/infer_vevovoice.py
+### Timbre
+A direct port of vivotimbre. A more direct voice conversion, also capable of processing longer audio clips than vevostyle/vevovoice.
+- https://github.com/open-mmlab/Amphion/blob/main/models/vc/vevo/infer_vevotimbre.py
+### TTS
+A direct port of vevotts. Doesn't work very well.
+- https://github.com/open-mmlab/Amphion/blob/main/models/vc/vevo/infer_vevotts.py
+
+# Vevo 1.5 (vevosing)
+Run `vevosing_gui.py` or `app.py -v 1.5`
+
+![Image](https://github.com/user-attachments/assets/c295f99a-49fa-4b12-a037-ad625672748a)
 
 ## Auto Transcription
 Vevo 1.5 requires accurate transcripts of the reference audio when using some modes. When the `Auto Transcribe` checkbox is checked, the audio will automatically be transcribed on selection using [openai-whisper](https://github.com/openai/whisper), specifically the [large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) model.
