@@ -14,8 +14,7 @@ Updated to support [Vevo 1.5](https://huggingface.co/amphion/Vevo1.5) a.k.a. [ve
   - `pip install -r requirements.txt`
 - Run the app (current working directory needs to be the top level of the repo):
   - `python app.py`
-- This is confirmed working for Linux+AMD (ROCM 6.2).
-  - https://github.com/open-mmlab/Amphion/blob/main/models/vc/vevo/README.md
+- This was tested on Linux+AMD (ROCM 6.2.4) and Python 3.10. It should work for Nvidia and Python 3.13.
 
 ### Pinokio Install
 In Pinokio, select "Download from URL" and use this:\
