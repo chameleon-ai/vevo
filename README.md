@@ -1,7 +1,7 @@
 # Vevo GUI
 Simple GUI for Amphion Vevo: https://github.com/open-mmlab/Amphion
 
-![screen2](https://github.com/user-attachments/assets/c5a3ee3d-dc79-4bbd-bf1f-cfc72ec21fba)
+Updated to support [Vevo 1.5](https://huggingface.co/amphion/Vevo1.5) a.k.a. [vevosing](https://github.com/open-mmlab/Amphion/blob/main/models/svc/vevosing/README.md)
 
 ## Installation
 - Clone this repository and `cd` to the top level.
@@ -14,12 +14,16 @@ Simple GUI for Amphion Vevo: https://github.com/open-mmlab/Amphion
   - `pip install -r requirements.txt`
 - Run the app (current working directory needs to be the top level of the repo):
   - `python app.py`
-- This is confirmed working for Linux+AMD (ROCM 6.2). If you run into issues, please try to get the command-line example from the Amphion repo working first. This GUI is a simple wrapper for the Amphion tools and there is no platform specific code in the GUI.
-  - https://github.com/open-mmlab/Amphion/blob/main/models/vc/vevo/README.md
+- This was tested on Linux+AMD (ROCM 6.2.4) and Python 3.10. It should work for Nvidia and Python 3.13.
 
 ### Pinokio Install
 In Pinokio, select "Download from URL" and use this:\
 https://github.com/chameleon-ai/vevo-pinokio
+
+# Vevo 1
+Run `vevo_gui.py` or `app.py -v 1`
+
+![screen2](https://github.com/user-attachments/assets/c5a3ee3d-dc79-4bbd-bf1f-cfc72ec21fba)
 
 ## Inference Modes
 ### Voice
@@ -33,3 +37,39 @@ A direct port of vivotimbre. A more direct voice conversion, also capable of pro
 ### TTS
 A direct port of vevotts. Doesn't work very well.
 - https://github.com/open-mmlab/Amphion/blob/main/models/vc/vevo/infer_vevotts.py
+
+# Vevo 1.5 (vevosing)
+Run `vevosing_gui.py` or `app.py -v 1.5`
+
+![Image](https://github.com/user-attachments/assets/c295f99a-49fa-4b12-a037-ad625672748a)
+
+## Auto Transcription
+Vevo 1.5 requires accurate transcripts of the reference audio when using some modes. When the `Auto Transcribe` checkbox is checked, the audio will automatically be transcribed on selection using [openai-whisper](https://github.com/openai/whisper), specifically the [large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) model.
+
+It also attempts to automatically detect and select the audio language. As far as I'm aware, only English and Chinese are supported.
+
+**Enabling transcription will bump up the VRAM usage. This is a completely opt-in feature.**\
+If the model is too much for you, edit the `transcribe` function in app.py:
+````
+def transcribe(filename):
+    print('Transcribing...')
+    import whisper
+    whisper_model = whisper.load_model("large-v3-turbo", device="cuda", download_root="./ckpts/")
+````
+and try "medium" or "tiny".
+
+## Inference Modes
+### Style
+A combo of `vevosing_editing`, `vevosing_singing_style_conversion` and `vevosing_melody_control`.\
+The only differences between these are how the inputs are used.
+- `vevosing_editing` uses the same input for reference style, reference timbre, and source audio. The reference style text should be an accurate transcript of the reference style audio. It will output whatever the source text says.
+- `vevosing_singing_style_conversion` uses the same input for reference timbre and source audio. The source text and reference style text should be accurate transcripts of their respective audio inputs. It basically only converts the style / accent of the reference style.
+- `vevosing_melody_control` uses the same input for reference timbre and reference style.  The reference style text should be an accurate transcript of the reference style audio. The source audio can be any melody, such as a piano. It will output whatever the source text says.
+- Really, it's all just a call to the same `inference_pipeline.inference_ar_and_fm` function, so just experiment with different combinations of inputs.
+- https://github.com/open-mmlab/Amphion/blob/main/models/svc/vevosing/infer_vevosing_ar.py
+### Timbre
+A direct port of `vevosing_fm`. Doesn't use a transcript. Works on clips about 15 seconds long.
+- https://github.com/open-mmlab/Amphion/blob/main/models/svc/vevosing/infer_vevosing_fm.py
+### TTS
+A direct port of `vevsing_tts`. This mode basically does arbitrary text-to-speech based on the voice cloned from input audio.
+- https://github.com/open-mmlab/Amphion/blob/main/models/svc/vevosing/infer_vevosing_ar.py

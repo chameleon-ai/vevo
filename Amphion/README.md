@@ -34,6 +34,11 @@
 In addition to the specific generation tasks, Amphion includes several **vocoders** and **evaluation metrics**. A vocoder is an important module for producing high-quality audio signals, while evaluation metrics are critical for ensuring consistent metrics in generation tasks. Moreover, Amphion is dedicated to advancing audio generation in real-world applications, such as building **large-scale datasets** for speech synthesis.
 
 ## 🚀 News
+- **2025/04/12**: We release [***Vevo1.5***](models/svc/vevosing/README.md), which extends Vevo and focuses on unified and controllable generation for both speech and singing voice. Vevo1.5 can be applied into a series of speech and singing voice generation tasks, including VC, TTS, AC, SVS, SVC, Speech/Singing Voice Editing, Singing Style Conversion, and more. [![blog](https://img.shields.io/badge/README-Blog-blue.svg)](https://veiled-army-9c5.notion.site/Vevo1-5-1d2ce17b49a280b5b444d3fa2300c93a)
+- **2025/02/26**: We release [***Metis***](https://github.com/open-mmlab/Amphion/tree/main/models/tts/metis), a foundation model for unified speech generation. The system supports zero-shot text-to-speech, voice conversion, target speaker extraction, speech enhancement, and lip-to-speech. [![arXiv](https://img.shields.io/badge/arXiv-Paper-COLOR.svg)](https://arxiv.org/pdf/2502.03128) [![hf](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-model-yellow)](https://huggingface.co/amphion/metis)
+- **2025/02/26**: *The Emilia-Large dataset, featuring over 200,000 hours of data, is now available!!!* Emilia-Large combines the original 101k-hour Emilia dataset (licensed under `CC BY-NC 4.0`) with the brand-new 114k-hour **Emilia-YODAS dataset** (licensed under `CC BY 4.0`). Download at [![hf](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-Dataset-yellow)](https://huggingface.co/datasets/amphion/Emilia-Dataset). Check details at [![arXiv](https://img.shields.io/badge/arXiv-Paper-COLOR.svg)](https://arxiv.org/abs/2501.15907).
+- **2025/01/30**: We release [Amphion v0.2 Technical Report](https://arxiv.org/abs/2501.15442), which provides a comprehensive overview of the Amphion updates in 2024. [![arXiv](https://img.shields.io/badge/arXiv-Paper-COLOR.svg)](https://arxiv.org/abs/2501.15442)
+- **2025/01/23**: [MaskGCT](https://arxiv.org/abs/2409.00750) and [Vevo](https://openreview.net/pdf?id=anQDiQZhDP) got accepted by ICLR 2025! 🎉
 - **2024/12/22**: We release the reproduction of **Vevo**, a zero-shot voice imitation framework with controllable timbre and style. Vevo can be applied into a series of speech generation tasks, including VC, TTS, AC, and more. The released pre-trained models are trained on [Emilia](https://huggingface.co/datasets/amphion/Emilia-Dataset) dataset and achieve SOTA zero-shot VC performance. [![arXiv](https://img.shields.io/badge/OpenReview-Paper-COLOR.svg)](https://openreview.net/pdf?id=anQDiQZhDP) [![hf](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-model-yellow)](https://huggingface.co/amphion/Vevo) [![WebPage](https://img.shields.io/badge/WebPage-Demo-red)](https://versavoice.github.io/) [![readme](https://img.shields.io/badge/README-Key%20Features-blue)](models/vc/vevo/README.md)
 - **2024/10/19**: We release **MaskGCT**, a fully non-autoregressive TTS model that eliminates the need for explicit alignment information between text and speech supervision. MaskGCT is trained on [Emilia](https://huggingface.co/datasets/amphion/Emilia-Dataset) dataset and achieves SOTA zero-shot TTS performance.  [![arXiv](https://img.shields.io/badge/arXiv-Paper-COLOR.svg)](https://arxiv.org/abs/2409.00750) [![hf](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-model-yellow)](https://huggingface.co/amphion/maskgct) [![hf](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-demo-pink)](https://huggingface.co/spaces/amphion/maskgct) [![ModelScope](https://img.shields.io/badge/ModelScope-space-purple)](https://modelscope.cn/studios/amphion/maskgct) [![ModelScope](https://img.shields.io/badge/ModelScope-model-cyan)](https://modelscope.cn/models/amphion/MaskGCT) [![readme](https://img.shields.io/badge/README-Key%20Features-blue)](models/tts/maskgct/README.md)
 - **2024/09/01**: [Amphion](https://arxiv.org/abs/2312.09911), [Emilia](https://arxiv.org/abs/2407.05361) and [DSFF-SVC](https://arxiv.org/abs/2310.11160) got accepted by IEEE SLT 2024! 🤗
@@ -181,10 +186,19 @@ We appreciate all contributions to improve Amphion. Please refer to [CONTRIBUTIN
 Amphion is under the [MIT License](LICENSE). It is free for both research and commercial use cases.
 
 ## 📚 Citations
-
+Amphion v0.2:
+```bibtex
+@article{amphion_v0.2,
+  title        = {Overview of the Amphion Toolkit (v0.2)},
+  author       = {Jiaqi Li and Xueyao Zhang and Yuancheng Wang and Haorui He and Chaoren Wang and Li Wang and Huan Liao and Junyi Ao and Zeyu Xie and Yiqiao Huang and Junan Zhang and Zhizheng Wu},
+  year         = {2025},
+  journal      = {arXiv preprint arXiv:2501.15442},
+}
+```
+Amphion v0.1: 
 ```bibtex
 @inproceedings{amphion,
-    author={Zhang, Xueyao and Xue, Liumeng and Gu, Yicheng and Wang, Yuancheng and Li, Jiaqi and He, Haorui and Wang, Chaoren and Song, Ting and Chen, Xi and Fang, Zihao and Chen, Haopeng and Zhang, Junan and Tang, Tze Ying and Zou, Lexiao and Wang, Mingxuan and Han, Jun and Chen, Kai and Li, Haizhou and Wu, Zhizheng},
+    author={Xueyao Zhang and Liumeng Xue and Yicheng Gu and Yuancheng Wang and Jiaqi Li and Haorui He and Chaoren Wang and Ting Song and Xi Chen and Zihao Fang and Haopeng Chen and Junan Zhang and Tze Ying Tang and Lexiao Zou and Mingxuan Wang and Jun Han and Kai Chen and Haizhou Li and Zhizheng Wu},
     title={Amphion: An Open-Source Audio, Music and Speech Generation Toolkit},
     booktitle={{IEEE} Spoken Language Technology Workshop, {SLT} 2024},
     year={2024}
