@@ -2,6 +2,8 @@ import errno
 import mimetypes
 import os
 import sys
+import threading
+import time
 import traceback
 from pydub import AudioSegment
 import torch
@@ -118,6 +120,8 @@ def infer():
         vevosing_utils.save_audio(gen_audio, target_sample_rate=48000, output_path=output_filename)
         message = "Done. Output file: '{}'".format(output_filename)
         print(message)
+        output_file_path.set(output_filename)
+        play_output_button['state'] = tk.NORMAL # enable playback
         error_str.set(message)
     except Exception as e:
         error_str.set(str(e))
@@ -260,10 +264,49 @@ def timbre_same_as_style_changed():
         if timbre_same_as_style_checked.get():
             reference_timbre_entry['state'] = tk.DISABLED
             reference_timbre_browse['state'] = tk.DISABLED
+            play_timbre_button['state'] = tk.DISABLED
             reference_timbre_path.set(reference_style_path.get())
         else:
             reference_timbre_entry['state'] = tk.NORMAL
             reference_timbre_browse['state'] = tk.NORMAL
+            play_timbre_button['state'] = tk.NORMAL
+
+# Playback control
+def play_audio(path_var, button):
+    import simpleaudio
+    import numpy
+    if not hasattr(button, 'playing') or not button.playing:
+        try:
+            file_path = path_var.get()
+            #print(f"playing '{file_path}'")  # Add debug output
+            segment = AudioSegment.from_file(file_path)
+            # Note that vevo outputs wav files as pcm_f32le but playback only supports pcm_s16le
+            if segment.sample_width != 2:  # Check if it's 32-bit float
+                # Convert to 16-bit PCM
+                segment = segment.set_sample_width(2)
+                raw_data = numpy.frombuffer(segment.raw_data, dtype=numpy.int16)
+            else:
+                raw_data = segment.raw_data
+            button.playing = True
+            def callback():
+                play_obj = simpleaudio.play_buffer(raw_data, 
+                    num_channels=segment.channels, 
+                    bytes_per_sample=segment.sample_width, 
+                    sample_rate=segment.frame_rate)
+                # Poll until the playback completes or we are interrupted by the "stop" button
+                while play_obj.is_playing() and button.playing:
+                    time.sleep(0.05)
+                button.playing = False
+                play_obj.stop()
+                button.config(text=button.original_text)
+            button.play_thread = threading.Thread(target=callback)
+            button.play_thread.start()
+            button.config(text="Stop " + button.original_text)
+        except Exception as e:
+            traceback.print_exc()
+            messagebox.showerror('Error', str(e))
+    else:
+        button.playing = False # Stop playback
 
 def set_mode():
     # Set certain controls to enabled or disabled depending on the inference mode
@@ -273,15 +316,19 @@ def set_mode():
         reference_style_browse['state'] = tk.NORMAL
         reference_timbre_entry['state'] = tk.NORMAL
         reference_timbre_browse['state'] = tk.NORMAL
+        play_style_button['state'] = tk.NORMAL
+        play_source_button['state'] = tk.NORMAL
         # Conditionally disable timbre if the checkbox is checked
         timbre_same_as_style_checkbutton['state'] = tk.NORMAL
         if timbre_same_as_style_checked.get():
             reference_timbre_entry['state'] = tk.DISABLED
             reference_timbre_browse['state'] = tk.DISABLED
+            play_timbre_button['state'] = tk.DISABLED
             reference_timbre_path.set(reference_style_path.get())
         else:
             reference_timbre_entry['state'] = tk.NORMAL
             reference_timbre_browse['state'] = tk.NORMAL
+            play_timbre_button['state'] = tk.NORMAL
         content_entry['state'] = tk.NORMAL
         content_browse['state'] = tk.NORMAL
         source_text_entry['state'] = tk.NORMAL
@@ -295,6 +342,9 @@ def set_mode():
         reference_style_browse['state'] = tk.DISABLED
         reference_timbre_entry['state'] = tk.NORMAL
         reference_timbre_browse['state'] = tk.NORMAL
+        play_style_button['state'] = tk.DISABLED
+        play_timbre_button['state'] = tk.NORMAL
+        play_source_button['state'] = tk.NORMAL
         timbre_same_as_style_checkbutton['state'] = tk.DISABLED
         content_entry['state'] = tk.NORMAL
         content_browse['state'] = tk.NORMAL
@@ -307,15 +357,19 @@ def set_mode():
     elif mode == 'tts':
         reference_style_entry['state'] = tk.NORMAL
         reference_style_browse['state'] = tk.NORMAL
+        play_style_button['state'] = tk.NORMAL
+        play_source_button['state'] = tk.DISABLED
         # Conditionally disable timbre if the checkbox is checked
         timbre_same_as_style_checkbutton['state'] = tk.NORMAL
         if timbre_same_as_style_checked.get():
             reference_timbre_entry['state'] = tk.DISABLED
             reference_timbre_browse['state'] = tk.DISABLED
+            play_timbre_button['state'] = tk.DISABLED
             reference_timbre_path.set(reference_style_path.get())
         else:
             reference_timbre_entry['state'] = tk.NORMAL
             reference_timbre_browse['state'] = tk.NORMAL
+            play_timbre_button['state'] = tk.NORMAL
         content_entry['state'] = tk.DISABLED
         content_browse['state'] = tk.DISABLED
         source_text_entry['state'] = tk.NORMAL
@@ -327,7 +381,6 @@ def set_mode():
         
     else:
         pass
-
 
 inference_pipeline = load_model()
 root = tk.Tk()
@@ -390,6 +443,7 @@ output_path = tk.StringVar()
 output_path.set(outdir)
 output_entry = tk.Entry(root, textvariable=output_path)
 output_browse = tk.Button(root, text='Browse', command=browse_output)
+output_file_path = tk.StringVar() # Specific output file name
 
 # Number of inference steps
 steps_value = tk.IntVar()
@@ -420,12 +474,24 @@ infer_button = tk.Button(root, text='Run Inference', command=infer)
 error_str = tk.StringVar()
 error_label = tk.Label(root, textvariable=error_str)
 
+# Playback buttons
+play_style_button = tk.Button(root, text="Play Style", width=12, command=lambda: play_audio(reference_style_path, play_style_button))
+play_style_button.original_text = "Play Style"
+play_timbre_button = tk.Button(root, text="Play Timbre", width=12, command=lambda: play_audio(reference_timbre_path, play_timbre_button))
+play_timbre_button.original_text = "Play Timbre"
+play_source_button = tk.Button(root, text="Play Source", width=12, command=lambda: play_audio(content_path, play_source_button))
+play_source_button.original_text = "Play Source"
+play_output_button = tk.Button(root, text="Play Output", width=12, command=lambda: play_audio(output_file_path, play_output_button))
+play_output_button.original_text = "Play Output"
+play_output_button['state'] = tk.DISABLED # disable button until inference runs
+
 set_mode()
 
 reference_style_label.grid(row=0,column=0)
 reference_style_entry.grid(row=0,column=1,sticky=tk.EW)
 reference_style_browse.grid(row=0,column=2)
 reference_transcribe_checkbutton.grid(row=0,column=3,sticky=tk.W)
+play_style_button.grid(row=0,column=4,sticky=tk.W)
 reference_text_label.grid(row=1,column=0)
 reference_text_entry.grid(row=1,column=1, columnspan=2,sticky=tk.EW)
 reference_language_combo.grid(row=1,column=3,sticky=tk.W)
@@ -434,11 +500,13 @@ reference_timbre_label.grid(row=2,column=0)
 reference_timbre_entry.grid(row=2,column=1,sticky=tk.EW)
 reference_timbre_browse.grid(row=2,column=2)
 timbre_same_as_style_checkbutton.grid(row=2,column=3,sticky=tk.W)
+play_timbre_button.grid(row=2,column=4,sticky=tk.W)
 
 content_label.grid(row=3,column=0)
 content_entry.grid(row=3,column=1,sticky=tk.EW)
 content_browse.grid(row=3,column=2)
 source_transcribe_checkbutton.grid(row=3,column=3,sticky=tk.W)
+play_source_button.grid(row=3,column=4,sticky=tk.W)
 
 source_text_label.grid(row=4,column=0)
 source_text_entry.grid(row=4,column=1, columnspan=2,sticky=tk.EW)
@@ -447,6 +515,7 @@ source_language_combo.grid(row=4,column=3,sticky=tk.W)
 output_label.grid(row=5,column=0)
 output_entry.grid(row=5,column=1,sticky=tk.EW)
 output_browse.grid(row=5,column=2)
+play_output_button.grid(row=5,column=4,sticky=tk.W)
 
 steps_label.grid(row=6,column=0,sticky=tk.NSEW)
 steps_scale.grid(row=6,column=1,sticky=tk.EW)

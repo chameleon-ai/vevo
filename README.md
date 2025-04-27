@@ -41,7 +41,7 @@ A direct port of vevotts. Doesn't work very well.
 # Vevo 1.5 (vevosing)
 Run `vevosing_gui.py` or `app.py -v 1.5`
 
-![Image](https://github.com/user-attachments/assets/c295f99a-49fa-4b12-a037-ad625672748a)
+![Image](https://github.com/user-attachments/assets/d69bfc2b-f427-402e-8ee1-1297f2ab115b)
 
 ## Auto Transcription
 Vevo 1.5 requires accurate transcripts of the reference audio when using some modes. When the `Auto Transcribe` checkbox is checked, the audio will automatically be transcribed on selection using [openai-whisper](https://github.com/openai/whisper), specifically the [large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) model.
