@@ -28,20 +28,23 @@ def get_audio_duration(filename : str):
     return segment.duration_seconds
 
 # Converts an audio file to wav if needed
-def get_wav(filename, out_dir):
+def get_wav(filename, out_dir, truncate : bool):
     # Possible mime types: https://www.iana.org/assignments/media-types/media-types.xhtml
-    mime, encoding = mimetypes.guess_type(filename)
-    if mime == 'audio/wav' or mime == 'audio/x-wav':
+    mime, subtype = mimetypes.guess_type(filename)[0].split('/')
+    #print(f'{mime}/{subtype}')
+    if (subtype == 'wav' or subtype == 'x-wav') and not truncate:
         return filename
-    elif mime == 'audio/mpeg':
-        seg = AudioSegment.from_mp3(filename)
+    elif mime == 'audio':
+        seg = AudioSegment.from_file(filename)
         # Create a new file in the output directory named after the input
         wav_filename = get_unique_filename(os.path.join(out_dir, os.path.splitext(os.path.basename(filename))[0]), 'wav')
         print(wav_filename)
+        if truncate:
+            seg = seg[:15000]
         seg.export(wav_filename, format="wav")
         return wav_filename
     else:
-        raise RuntimeError("Unsupported file type {} for file '{}'".format(mime, filename))
+        raise RuntimeError(f"Unsupported file type {mime}/{subtype} for file '{filename}'")
 
 # Do vevo inference based on the provided mode string
 def run_inference(pipeline : vevosing_utils.VevosingInferencePipeline,
@@ -204,17 +207,23 @@ def transcribe(filename):
     #print(result)
     return result["text"], result["language"]
 
+# Returns True if we need to truncate, False if we don't want to truncate, or None if we want to cancel
 def duration_check(filename):
+    mime, subtype = mimetypes.guess_type(filename)[0].split('/')
+    if mime != 'audio': # Make sure this is something we can load
+        raise RuntimeError(f'Unsupported file type {mime}/{subtype}')
     reference_duration = get_audio_duration(filename)
     if reference_duration >= 15.0:
-        return tk.messagebox.askyesno("Audio Length Warning", f"The selected audio length of {reference_duration} seconds is greater than the recommended maximum of 15 seconds. Inference may be degraded or not work at all. Do you wish to proceed?")
-    return True # Duration check passed
+        return tk.messagebox.askyesnocancel("Audio Length Warning", f"The selected audio length of {reference_duration} seconds is greater than the recommended maximum of 15 seconds. Inference may be degraded or not work at all.\n\nDo you want to truncate?\n")
+    return False # No need
 
 def browse_reference_style():
     try:
         filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
-        if os.path.exists(filename) and duration_check(filename):
-            reference_style_path.set(get_wav(filename, output_path.get()))
+        if os.path.exists(filename): 
+            truncate = duration_check(filename)
+            if truncate is not None:
+                reference_style_path.set(get_wav(filename, output_path.get(), truncate))
             if timbre_same_as_style_checked.get(): # Use same path for timbre if checkbox is checked
                 reference_timbre_path.set(reference_style_path.get())
             if reference_transcribe_checked.get() == 1:
@@ -226,31 +235,35 @@ def browse_reference_style():
                     reference_language_combo.current(1)
 
     except Exception as e:
-        messagebox.showerror('Error', 'Tried to generate .wav file in output directory, but failed: {}'.format(e))
+        messagebox.showerror('Error', f'Failed to process file: {e}')
 
 def browse_reference_timbre():
     try:
         filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
-        if os.path.exists(filename) and duration_check(filename):
-            reference_timbre_path.set(get_wav(filename, output_path.get()))
+        if os.path.exists(filename):
+            truncate = duration_check(filename)
+            if truncate is not None:
+                reference_timbre_path.set(get_wav(filename, output_path.get(), truncate))
     except Exception as e:
-        messagebox.showerror('Error', 'Tried to generate .wav file in output directory, but failed: {}'.format(e))
+        messagebox.showerror('Error', f'Failed to process file: {e}')
 
 def browse_content():
     try:
         filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
-        if os.path.exists(filename) and duration_check(filename):
-            content_path.set(get_wav(filename, output_path.get()))
-            if source_transcribe_checked.get() == 1 and mode_var.get() != 'fm':
-                text, language = transcribe(filename)
-                source_text.set(text)
-                if language == 'en':
-                    source_language_combo.current(0)
-                elif language == 'zh':
-                    source_language_combo.current(1)
+        if os.path.exists(filename):
+            truncate = duration_check(filename)
+            if truncate is not None:
+                content_path.set(get_wav(filename, output_path.get(), truncate))
+                if source_transcribe_checked.get() == 1 and mode_var.get() != 'fm':
+                    text, language = transcribe(filename)
+                    source_text.set(text)
+                    if language == 'en':
+                        source_language_combo.current(0)
+                    elif language == 'zh':
+                        source_language_combo.current(1)
 
     except Exception as e:
-        messagebox.showerror('Error', 'Tried to generate .wav file in output directory, but failed: {}'.format(e))
+        messagebox.showerror('Error', f'Failed to process file: {e}')
 
 def browse_output():
     dirname = filedialog.askdirectory()
