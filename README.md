@@ -61,7 +61,9 @@ and try "medium" or "tiny".
 ## Length Limit
 Vevo 1.5 is designed for short clips (about 15 seconds or less). The GUI won't stop you from using longer clips, but be warned that it may not work.
 
-![Image](https://github.com/user-attachments/assets/30a7d563-6317-40ac-821a-01059ef776a8)
+If you see this warning, select 'Yes' to truncate the clip at 15 seconds. The truncated file will be put in the output directory and used as input. Select 'No' to keep the full length audio.
+
+![Image](https://github.com/user-attachments/assets/8b3b0be1-f530-4684-862e-463ae6b46ba4)
 
 ## Inference Modes
 ### Style
