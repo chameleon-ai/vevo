@@ -21,6 +21,10 @@ def get_unique_filename(basename : str, extension : str):
         filename = '{}-{}.{}'.format(basename,x,extension)
     return filename
 
+def get_audio_duration(filename : str):
+    segment = AudioSegment.from_file(filename)
+    return segment.duration_seconds
+
 # Converts an audio file to wav if needed
 def get_wav(filename, out_dir):
     # Possible mime types: https://www.iana.org/assignments/media-types/media-types.xhtml
@@ -196,13 +200,19 @@ def transcribe(filename):
     #print(result)
     return result["text"], result["language"]
 
+def duration_check(filename):
+    reference_duration = get_audio_duration(filename)
+    if reference_duration >= 15.0:
+        return tk.messagebox.askyesno("Audio Length Warning", f"The selected audio length of {reference_duration} seconds is greater than the recommended maximum of 15 seconds. Inference may be degraded or not work at all. Do you wish to proceed?")
+    return True # Duration check passed
+
 def browse_reference_style():
     try:
         filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
-        if os.path.exists(filename):
+        if os.path.exists(filename) and duration_check(filename):
             reference_style_path.set(get_wav(filename, output_path.get()))
             if timbre_same_as_style_checked.get(): # Use same path for timbre if checkbox is checked
-                reference_timbre_path.set(get_wav(filename, output_path.get()))
+                reference_timbre_path.set(reference_style_path.get())
             if reference_transcribe_checked.get() == 1:
                 text, language = transcribe(filename)
                 reference_text.set(text)
@@ -217,7 +227,7 @@ def browse_reference_style():
 def browse_reference_timbre():
     try:
         filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
-        if os.path.exists(filename):
+        if os.path.exists(filename) and duration_check(filename):
             reference_timbre_path.set(get_wav(filename, output_path.get()))
     except Exception as e:
         messagebox.showerror('Error', 'Tried to generate .wav file in output directory, but failed: {}'.format(e))
@@ -225,7 +235,7 @@ def browse_reference_timbre():
 def browse_content():
     try:
         filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
-        if os.path.exists(filename):
+        if os.path.exists(filename) and duration_check(filename):
             content_path.set(get_wav(filename, output_path.get()))
             if source_transcribe_checked.get() == 1 and mode_var.get() != 'fm':
                 text, language = transcribe(filename)
@@ -250,7 +260,7 @@ def timbre_same_as_style_changed():
         if timbre_same_as_style_checked.get():
             reference_timbre_entry['state'] = tk.DISABLED
             reference_timbre_browse['state'] = tk.DISABLED
-            reference_timbre_path.set(get_wav(reference_style_path.get(), output_path.get()))
+            reference_timbre_path.set(reference_style_path.get())
         else:
             reference_timbre_entry['state'] = tk.NORMAL
             reference_timbre_browse['state'] = tk.NORMAL
@@ -268,7 +278,7 @@ def set_mode():
         if timbre_same_as_style_checked.get():
             reference_timbre_entry['state'] = tk.DISABLED
             reference_timbre_browse['state'] = tk.DISABLED
-            reference_timbre_path.set(get_wav(reference_style_path.get(), output_path.get()))
+            reference_timbre_path.set(reference_style_path.get())
         else:
             reference_timbre_entry['state'] = tk.NORMAL
             reference_timbre_browse['state'] = tk.NORMAL
@@ -302,7 +312,7 @@ def set_mode():
         if timbre_same_as_style_checked.get():
             reference_timbre_entry['state'] = tk.DISABLED
             reference_timbre_browse['state'] = tk.DISABLED
-            reference_timbre_path.set(get_wav(reference_style_path.get(), output_path.get()))
+            reference_timbre_path.set(reference_style_path.get())
         else:
             reference_timbre_entry['state'] = tk.NORMAL
             reference_timbre_browse['state'] = tk.NORMAL

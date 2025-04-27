@@ -49,7 +49,7 @@ Vevo 1.5 requires accurate transcripts of the reference audio when using some mo
 It also attempts to automatically detect and select the audio language. As far as I'm aware, only English and Chinese are supported.
 
 **Enabling transcription will bump up the VRAM usage. This is a completely opt-in feature.**\
-If the model is too much for you, edit the `transcribe` function in app.py:
+If the model is too much for you, edit the `transcribe` function in vevosing_gui.py:
 ````
 def transcribe(filename):
     print('Transcribing...')
@@ -57,6 +57,11 @@ def transcribe(filename):
     whisper_model = whisper.load_model("large-v3-turbo", device="cuda", download_root="./ckpts/")
 ````
 and try "medium" or "tiny".
+
+## Length Limit
+Vevo 1.5 is designed for short clips (about 15 seconds or less). The GUI won't stop you from using longer clips, but be warned that it may not work.
+
+![Image](https://github.com/user-attachments/assets/30a7d563-6317-40ac-821a-01059ef776a8)
 
 ## Inference Modes
 ### Style
