@@ -201,6 +201,8 @@ def browse_reference_style():
         filename = filedialog.askopenfilename(filetypes=(("Audio files","*.wav *.mp3"),("All files","*.*")))
         if os.path.exists(filename):
             reference_style_path.set(get_wav(filename, output_path.get()))
+            if timbre_same_as_style_checked.get(): # Use same path for timbre if checkbox is checked
+                reference_timbre_path.set(get_wav(filename, output_path.get()))
             if reference_transcribe_checked.get() == 1:
                 text, language = transcribe(filename)
                 reference_text.set(text)
@@ -242,6 +244,17 @@ def browse_output():
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), dirname)
     output_path.set(dirname)
 
+def timbre_same_as_style_changed():
+    mode = mode_var.get()
+    if mode == 'style' or mode == 'tts':
+        if timbre_same_as_style_checked.get():
+            reference_timbre_entry['state'] = tk.DISABLED
+            reference_timbre_browse['state'] = tk.DISABLED
+            reference_timbre_path.set(get_wav(reference_style_path.get(), output_path.get()))
+        else:
+            reference_timbre_entry['state'] = tk.NORMAL
+            reference_timbre_browse['state'] = tk.NORMAL
+
 def set_mode():
     # Set certain controls to enabled or disabled depending on the inference mode
     mode = mode_var.get()
@@ -250,6 +263,15 @@ def set_mode():
         reference_style_browse['state'] = tk.NORMAL
         reference_timbre_entry['state'] = tk.NORMAL
         reference_timbre_browse['state'] = tk.NORMAL
+        # Conditionally disable timbre if the checkbox is checked
+        timbre_same_as_style_checkbutton['state'] = tk.NORMAL
+        if timbre_same_as_style_checked.get():
+            reference_timbre_entry['state'] = tk.DISABLED
+            reference_timbre_browse['state'] = tk.DISABLED
+            reference_timbre_path.set(get_wav(reference_style_path.get(), output_path.get()))
+        else:
+            reference_timbre_entry['state'] = tk.NORMAL
+            reference_timbre_browse['state'] = tk.NORMAL
         content_entry['state'] = tk.NORMAL
         content_browse['state'] = tk.NORMAL
         source_text_entry['state'] = tk.NORMAL
@@ -263,6 +285,7 @@ def set_mode():
         reference_style_browse['state'] = tk.DISABLED
         reference_timbre_entry['state'] = tk.NORMAL
         reference_timbre_browse['state'] = tk.NORMAL
+        timbre_same_as_style_checkbutton['state'] = tk.DISABLED
         content_entry['state'] = tk.NORMAL
         content_browse['state'] = tk.NORMAL
         source_text_entry['state'] = tk.DISABLED
@@ -274,8 +297,15 @@ def set_mode():
     elif mode == 'tts':
         reference_style_entry['state'] = tk.NORMAL
         reference_style_browse['state'] = tk.NORMAL
-        reference_timbre_entry['state'] = tk.NORMAL
-        reference_timbre_browse['state'] = tk.NORMAL
+        # Conditionally disable timbre if the checkbox is checked
+        timbre_same_as_style_checkbutton['state'] = tk.NORMAL
+        if timbre_same_as_style_checked.get():
+            reference_timbre_entry['state'] = tk.DISABLED
+            reference_timbre_browse['state'] = tk.DISABLED
+            reference_timbre_path.set(get_wav(reference_style_path.get(), output_path.get()))
+        else:
+            reference_timbre_entry['state'] = tk.NORMAL
+            reference_timbre_browse['state'] = tk.NORMAL
         content_entry['state'] = tk.DISABLED
         content_browse['state'] = tk.DISABLED
         source_text_entry['state'] = tk.NORMAL
@@ -307,6 +337,9 @@ reference_timbre_path = tk.StringVar()
 reference_timbre_path.set('./samples/ian-mckellan.wav')
 reference_timbre_entry = tk.Entry(root, textvariable=reference_timbre_path)
 reference_timbre_browse = tk.Button(root, text='Browse', command=browse_reference_timbre)
+timbre_same_as_style_checked = tk.IntVar()
+timbre_same_as_style_checkbutton = tk.Checkbutton(root, text='Same as Style', variable=timbre_same_as_style_checked, onvalue=1, offvalue=0, command=timbre_same_as_style_changed)
+#timbre_same_as_style_checkbutton.select()
 content_label = tk.Label(root, text='Source audio/melody:')
 content_path = tk.StringVar()
 content_path.set('./samples/barry-white.wav')
@@ -382,23 +415,24 @@ set_mode()
 reference_style_label.grid(row=0,column=0)
 reference_style_entry.grid(row=0,column=1,sticky=tk.EW)
 reference_style_browse.grid(row=0,column=2)
-reference_transcribe_checkbutton.grid(row=0,column=3)
+reference_transcribe_checkbutton.grid(row=0,column=3,sticky=tk.W)
 reference_text_label.grid(row=1,column=0)
-reference_text_entry.grid(row=1,column=1, columnspan=2, sticky=tk.EW)
-reference_language_combo.grid(row=1,column=3)
+reference_text_entry.grid(row=1,column=1, columnspan=2,sticky=tk.EW)
+reference_language_combo.grid(row=1,column=3,sticky=tk.W)
 
 reference_timbre_label.grid(row=2,column=0)
 reference_timbre_entry.grid(row=2,column=1,sticky=tk.EW)
 reference_timbre_browse.grid(row=2,column=2)
+timbre_same_as_style_checkbutton.grid(row=2,column=3,sticky=tk.W)
 
 content_label.grid(row=3,column=0)
 content_entry.grid(row=3,column=1,sticky=tk.EW)
 content_browse.grid(row=3,column=2)
-source_transcribe_checkbutton.grid(row=3, column=3)
+source_transcribe_checkbutton.grid(row=3,column=3,sticky=tk.W)
 
 source_text_label.grid(row=4,column=0)
-source_text_entry.grid(row=4,column=1, columnspan=2, sticky=tk.EW)
-source_language_combo.grid(row=4,column=3)
+source_text_entry.grid(row=4,column=1, columnspan=2,sticky=tk.EW)
+source_language_combo.grid(row=4,column=3,sticky=tk.W)
 
 output_label.grid(row=5,column=0)
 output_entry.grid(row=5,column=1,sticky=tk.EW)
