@@ -286,40 +286,36 @@ def timbre_same_as_style_changed():
 
 # Playback control
 def play_audio(path_var, button):
-    import simpleaudio
-    import numpy
+    import pygame
     if not hasattr(button, 'playing') or not button.playing:
         try:
             file_path = path_var.get()
-            #print(f"playing '{file_path}'")  # Add debug output
             segment = AudioSegment.from_file(file_path)
-            # Note that vevo outputs wav files as pcm_f32le but playback only supports pcm_s16le
-            if segment.sample_width != 2:  # Check if it's 32-bit float
-                # Convert to 16-bit PCM
-                segment = segment.set_sample_width(2)
-                raw_data = numpy.frombuffer(segment.raw_data, dtype=numpy.int16)
-            else:
-                raw_data = segment.raw_data
+
+            # Initialize Pygame mixer
+            pygame.mixer.init(frequency=segment.frame_rate, size=-16, channels=segment.channels)
+            pygame.mixer.music.load(file_path)
+
             button.playing = True
+            button.config(text="Stop " + button.original_text)
+
             def callback():
-                play_obj = simpleaudio.play_buffer(raw_data, 
-                    num_channels=segment.channels, 
-                    bytes_per_sample=segment.sample_width, 
-                    sample_rate=segment.frame_rate)
-                # Poll until the playback completes or we are interrupted by the "stop" button
-                while play_obj.is_playing() and button.playing:
-                    time.sleep(0.05)
+                pygame.mixer.music.play()
+                while button.playing and pygame.mixer.music.get_busy():
+                    time.sleep(0.1)
+                pygame.mixer.music.stop()
                 button.playing = False
-                play_obj.stop()
                 button.config(text=button.original_text)
+                #print('playback finished')
+
             button.play_thread = threading.Thread(target=callback)
             button.play_thread.start()
-            button.config(text="Stop " + button.original_text)
         except Exception as e:
             traceback.print_exc()
             messagebox.showerror('Error', str(e))
     else:
-        button.playing = False # Stop playback
+        # Stop playback
+        button.playing = False
 
 def set_mode():
     # Set certain controls to enabled or disabled depending on the inference mode
@@ -398,7 +394,7 @@ def set_mode():
 inference_pipeline = load_model()
 root = tk.Tk()
 root.title('Vevo GUI')
-root.geometry("1200x300")
+root.geometry("1200x320")
 
 tk.Grid.columnconfigure(root, 1, weight=1) # Weight this column to have it stretch with the window
 

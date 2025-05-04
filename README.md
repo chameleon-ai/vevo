@@ -14,7 +14,8 @@ Updated to support [Vevo 1.5](https://huggingface.co/amphion/Vevo1.5) a.k.a. [ve
   - `pip install -r requirements.txt`
 - Run the app (current working directory needs to be the top level of the repo):
   - `python app.py`
-- This was tested on Linux+AMD (ROCM 6.2.4) and Python 3.10. It should work for Nvidia and Python 3.13.
+- This was tested on Linux+AMD (ROCM 6.3) with Python 3.10 and 3.13. It should work for Nvidia and probably works on Windows.
+- Note that espeak-ng is a dependency that needs to be installed on your system. For more information, see the main Amphion repository.
 
 ### Pinokio Install
 In Pinokio, select "Download from URL" and use this:\
